@@ -1,4 +1,5 @@
 import google.generativeai as genai
+import speech_recognition as sr
 
 genai.configure(api_key="AIzaSyBELsiXol5mvzDZTTBpFcuJWTOwLr05gfo")
 
@@ -35,12 +36,29 @@ model = genai.GenerativeModel(
     safety_settings=safety_settings
 )
 
+# Initialize the recognizer
+recognizer = sr.Recognizer()
+
 while True:
-    # Get user prompt
-    user_prompt = input("Enter your prompt: ").strip()
-    prompt_parts = [user_prompt]
-    if user_prompt == "exit":
-        break
-    # Generate content based on user prompt
-    response = model.generate_content(prompt_parts)
-    print(response.text)
+    try:
+        # Get user prompt through speech
+        with sr.Microphone() as source:
+            print("Say your prompt:")
+            audio = recognizer.listen(source)
+
+        user_prompt = recognizer.recognize_google_cloud(audio).strip()
+        prompt_parts = [user_prompt]
+
+        if user_prompt.lower() == "exit":
+            break
+
+        # Generate content based on user prompt
+        response = model.generate_content(prompt_parts)
+        print(response.text)
+
+    except sr.UnknownValueError:
+        print("Sorry, could not understand audio. Please try again.")
+    except sr.RequestError as e:
+        print(f"Speech recognition request failed: {e}")
+    except Exception as e:
+        print(f"An error occurred: {e}")
